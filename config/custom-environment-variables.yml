@@ -1,0 +1,7 @@
+etcd:
+  hosts: EC_PROXY_ETCD_HOSTS
+  ca: EC_PROXY_ETCD_CA
+  cert: EC_PROXY_ETCD_CERT
+  key: EC_PROXY_ETCD_KEY
+  dir: EC_PROXY_ETCD_DIR
+label: EC_PROXY_LABEL

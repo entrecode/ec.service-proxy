@@ -1,0 +1,8 @@
+.*
+Dockerfile
+src
+node_modules
+example
+ts*.json
+config/local.yml
+haproxy.cfg

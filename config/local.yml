@@ -1,0 +1,6 @@
+etcd:
+  hosts: https://etcd.cachena.entrecode.de
+  ca: /Users/simon/Documents/entrecode/_daten/CA/intermediate/certs/ca-chain.cert.pem
+  cert: /Users/simon/Documents/entrecode/_daten/CA/intermediate/certs/scherzinger@entrecode.de.cert.pem
+  key: /Users/simon/Documents/entrecode/_daten/CA/intermediate/private/scherzinger@entrecode.de.key.pem
+path: .

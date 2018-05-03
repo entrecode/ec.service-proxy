@@ -1,0 +1,37 @@
+{
+  "name": "ec.service-proxy",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tslint -p .",
+    "start": "node dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/entrecode/ec.service-proxy.git"
+  },
+  "author": "Simon Scherzinger <scherzinger@entrecode.de>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/entrecode/ec.service-proxy/issues"
+  },
+  "homepage": "https://github.com/entrecode/ec.service-proxy#readme",
+  "dependencies": {
+    "config": "^1.30.0",
+    "js-yaml": "^3.11.0",
+    "node-etcd": "^5.1.0",
+    "nunjucks": "^3.1.2",
+    "yargs": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/config": "0.0.34",
+    "@types/node": "^10.0.2",
+    "@types/nunjucks": "^3.0.0",
+    "@types/yargs": "^11.0.0",
+    "tslint": "^5.9.1",
+    "tslint-config-airbnb": "^5.8.0",
+    "typescript": "^2.8.3"
+  }
+}
