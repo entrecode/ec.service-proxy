@@ -1,12 +1,13 @@
 import { argv } from 'yargs';
 import * as config from 'config';
-import { writeFile } from 'fs';
+import { writeFile, readFile } from 'fs';
 import * as nunjucks from 'nunjucks';
 import { promisify } from 'util';
 
-import etcd from './lib/etcd';
+import { etcd } from './lib/etcd';
 
 const writeFileAsync = promisify(writeFile);
+const readFileAsync = promisify(readFile);
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
@@ -20,7 +21,7 @@ if (!argv.once && !argv.daemon) {
 
 async function renderTemplate() {
   const key = `/${config.get('etcd.dir')}/labels/${config.get('label')}/`;
-  const { node: { nodes } } = await etcd.etcd.getAsync(key);
+  const { node: { nodes } } = await etcd.getAsync(key);
 
   const hosts = {};
   const containerIDs = [];
@@ -44,8 +45,8 @@ async function renderTemplate() {
     extPort: 7777,
     services: await Promise.all(Object.keys(hosts).map(async (host) => {
       let [name, ...ips] = await Promise.all([
-        etcd.etcd.getAsync(`/${config.get('etcd.dir')}/labels/name/${hosts[host][0]}`),
-        ...hosts[host].map(id => etcd.etcd.getAsync(`/${config.get('etcd.dir')}/labels/io.rancher.container.ip/${id}`)),
+        etcd.getAsync(`/${config.get('etcd.dir')}/labels/name/${hosts[host][0]}`),
+        ...hosts[host].map(id => etcd.getAsync(`/${config.get('etcd.dir')}/labels/io.rancher.container.ip/${id}`)),
       ]);
 
       name = name.node.value;
@@ -68,11 +69,36 @@ async function renderTemplate() {
   return nunjucks.render('config.njk', render);
 }
 
-async function watch() {
-  // TODO attach watcher
-  // TODO create config
-  // TODO compare config
+async function reRenderTemplate() {
+  const cfg = await renderTemplate();
+  const currentCfg = await readFileAsync(`${config.get('path')}/haproxy.cfg`, 'utf-8');
+
+  if (cfg === currentCfg) {
+    throw new Error(`Config is the same, skipping reload.`);
+  }
+
+  await writeFileAsync(`${config.get('path')}/haproxy.cfg`, cfg, 'utf-8');
+  
   // TODO reload haproxy if config changed
+}
+
+let watcher;
+
+async function watch() {
+  watcher = etcd.watcher(`/${config.get('etcd.dir')}/labels/${config.get('label')}/`, null, { recursive: true });
+  watcher.on('change', (event) => {
+    reRenderTemplate()
+      .catch((e) => {
+        switch (e.message) {
+          case 'Config is the same, skipping reload.':
+            console.info(e.message);
+            break;
+          default:
+            console.error(e);
+            break;
+        }
+      });
+  });
 }
 
 let task;
@@ -86,7 +112,7 @@ if (argv.once) {
 task
   .then(() => {
     console.log('... done.');
-    process.exit(0);
+    // process.exit(0);
   })
   .catch((err) => {
     console.error(err);

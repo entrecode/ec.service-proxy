@@ -17,9 +17,5 @@ if (config.has('etcd.cert')) {
   }
 }
 
-const etcd = new Etcd(etcdHosts.split(',').map(x => x.trim()), etcdOpts);
+export const etcd = new Etcd(etcdHosts.split(',').map(x => x.trim()), etcdOpts);
 etcd.getAsync = promisify(etcd.get);
-
-export default {
-  etcd,
-};

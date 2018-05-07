@@ -53,8 +53,8 @@ RUN set -x \
   && apk add --virtual .haproxy-rundeps $runDeps \
   && apk del .build-deps \
   \
-  # install rsyslogd and tini
-  && apk add --no-cache rsyslog tini \
+  # install rsyslogd, openrc, and tini
+  && apk add --no-cache rsyslog tini openrc \
   && touch /var/log/haproxy.log \
   && ln -sf /dev/stdout /var/log/haproxy.log \
   && mkdir -p /usr/src/app \
@@ -63,12 +63,14 @@ RUN set -x \
   && mkdir -p /etc/rsyslog.d/
 
 COPY rsyslog.conf /etc
+COPY init.sh /etc/init.d/haproxy
 ENTRYPOINT ["/sbin/tini", "--", "./entrypoint.sh" ]
-CMD ["haproxy", "-f", "/usr/src/app/haproxy.cfg"]
+CMD ["npm", "start"]
 
 COPY package* ./
 RUN apk add --no-cache --virtual .node-deps python make g++ \
   && npm i --only=prod && npm cache clean --force \
-  && apk del .node-deps
+  && apk del .node-deps \
+  && chmod +x /etc/init.d/haproxy
 COPY . .
 RUN chmod +x entrypoint.sh
