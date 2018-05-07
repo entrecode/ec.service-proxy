@@ -1,0 +1,19 @@
+language: node_js
+node_js:
+- '10'
+- '8'
+cache:
+  directories:
+  - node_modules
+before_script:
+- npm run build
+env:
+  global:
+    secure: L9PZgp8MDE/t1W8zwNc9QNLXKk6678uExtl0RyAwUiXmoDWMsOhl1yJ6MyodHtYtiPUt+CPaYfWEYAequm9405V85BLjSItx9/9iBDDfVl1UqBiBQFcGkpKutCWtXwFho2Be65sVbXgG4nmr4zSPhstsaM1O3nBk7+on3wir+oYhhC3gCfLBgpfc5nVJV8rfG05tmTobUToV2jwYHsQjJdk1jQ/znjxop9qTRCNsLgIP284nkFCqz5Okj4gsVkjerU8B5xRazzTA9R90FyQ9U2R+NGqnwFsXDp5LLJUU2g0VRz+bFuUKB+zl1k2kdpcTBiM2rp++ecwOn8dn8+OezWlKLf3llf7Iwr7Fhb+2sytEvsPzMZcinpjty4LAgWkRuzfLopLHml78yJgU8zJLMb/e+2LRg9vH0dSopnFTtDzfOc2g6XGTIoxTgYWiSOLJNCHULxdp/knHNN8mBtlIIkPL898ZbxAAkfjWYR+G4/CcUhfkmfqvKuSVCPTI2EkoIsbKycHhy+vLXABBKxjPuOOQhj7LBg3icSy/yZsNEztKWik0BES1nmVYz3K+ucfO/fGAeMjJY2SHJjY95RRAvGg9Zr6k7AxeB9Icm4bqHd2Phsv+zbpYUotWMIsePeOgP62+qh7aOrSijMlxhRLdyLyaFPWirVRsHYzrITCRp8c= # DOCKER PASSWORD
+after_success:
+- docker login -u entrecode -p $DOCKER_PASSWORD
+- export REPO=entrecode/service-proxy
+- export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH; fi`
+- docker build -f Dockerfile -t $REPO:$TAG .
+- if [ "$TRAVIS_BRANCH" == "master" ]; then docker tag $REPO:$TAG $REPO:`node -e "console.log(require('./package.json').version)"`; fi
+- docker push $REPO
