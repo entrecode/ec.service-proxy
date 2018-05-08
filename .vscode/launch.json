@@ -20,7 +20,7 @@
       },
       "localRoot": "${workspaceFolder}/",
       "args": [
-        "--once"
+        "--daemon"
       ]
     }
   ]

@@ -1,13 +1,16 @@
 import { argv } from 'yargs';
 import * as config from 'config';
-import { writeFile, readFile } from 'fs';
+import { writeFile, readFile, access, fstat, constants } from 'fs';
 import * as nunjucks from 'nunjucks';
 import { promisify } from 'util';
+import { execFile } from 'child_process';
 
 import { etcd } from './lib/etcd';
 
 const writeFileAsync = promisify(writeFile);
 const readFileAsync = promisify(readFile);
+const accessAsync = promisify(access);
+const execFileAsync = promisify(execFile);
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
@@ -77,9 +80,20 @@ async function reRenderTemplate() {
     throw new Error(`Config is the same, skipping reload.`);
   }
 
+  console.info('writing new config');
   await writeFileAsync(`${config.get('path')}/haproxy.cfg`, cfg, 'utf-8');
-  
-  // TODO reload haproxy if config changed
+
+  try {
+    await accessAsync('/etc/init.d/haproxy', constants.X_OK);
+    console.info('reloading haproxy');
+    const { stdout, stderr } = await execFileAsync('/etc/init.d/haproxy', ['reload']);
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      throw new Error('haproxy init script not available, skipping reload');
+    }
+
+    throw e;
+  }
 }
 
 let watcher;
@@ -91,6 +105,7 @@ async function watch() {
       .catch((e) => {
         switch (e.message) {
           case 'Config is the same, skipping reload.':
+          case 'haproxy init script not available, skipping reload':
             console.info(e.message);
             break;
           default:
@@ -104,22 +119,20 @@ async function watch() {
 let task;
 if (argv.once) {
   task = renderTemplate()
-    .then(cfg => writeFileAsync(`${config.get('path')}/haproxy.cfg`, cfg, 'utf-8'));
+    .then(cfg => writeFileAsync(`${config.get('path')}/haproxy.cfg`, cfg, 'utf-8'))
+    .then(() => {
+      console.log('config saved');
+    });
 } else {
   task = watch();
 }
 
-task
-  .then(() => {
-    console.log('... done.');
-    // process.exit(0);
-  })
-  .catch((err) => {
-    console.error(err);
-    if ('errors' in err) {
-      err.errors.forEach((err) => {
-        console.error(err);
-      });
-    }
-    process.exit(1);
-  });
+task.catch((err) => {
+  console.error(err);
+  if ('errors' in err) {
+    err.errors.forEach((err) => {
+      console.error(err);
+    });
+  }
+  process.exit(1);
+});
