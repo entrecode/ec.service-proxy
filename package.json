@@ -6,7 +6,11 @@
   "scripts": {
     "build": "tsc",
     "lint": "tslint -p .",
-    "start": "node dist/index.js --daemon"
+    "start": "node dist/index.js --daemon",
+    "predocker:build": "npm run build",
+    "docker:build": "docker build -t entrecode/service-proxy:develop .",
+    "predocker:publish": "npm run docker:build",
+    "docker:publish": "docker push entrecode/service-proxy:develop"
   },
   "repository": {
     "type": "git",
