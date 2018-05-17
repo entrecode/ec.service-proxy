@@ -4,6 +4,7 @@ import { writeFile, readFile, access, fstat, constants } from 'fs';
 import * as nunjucks from 'nunjucks';
 import { promisify } from 'util';
 import { execFile } from 'child_process';
+import * as http from 'http';
 
 import { etcd } from './lib/etcd';
 
@@ -84,6 +85,7 @@ async function reRenderTemplate() {
   await writeFileAsync(`${config.get('path')}/haproxy.cfg`, cfg, 'utf-8');
 
   try {
+    // TODO with haproxyctl
     await accessAsync('/etc/init.d/haproxy', constants.X_OK);
     console.info('reloading haproxy');
     const { stdout, stderr } = await execFileAsync('/etc/init.d/haproxy', ['reload']);
@@ -96,11 +98,71 @@ async function reRenderTemplate() {
   }
 }
 
-let watcher;
+async function disableServer(name) {
+  try {
+    await accessAsync('/etc/init.d/haproxyctl', constants.X_OK);
+    const { stdout, stderr } = await execFileAsync('/etc/init.d/haproxyctl', [`"disable server ${name}"`]);
+    console.log('out:');
+    console.log(stdout);
+    console.log('err:');
+    console.log(stderr);
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      throw new Error('haproxy init script not available, skipping reload');
+    }
 
+    throw e;
+  }
+}
+
+let watcher;
+// let timer;
 async function watch() {
+  const server = http.createServer((req: any, res: any) => {
+    switch (true) {
+      default:
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.write(JSON.stringify({ message: 'not-found' }));
+        return res.end();
+      case req.url.toLowerCase().startsWith('/disableserver/'):
+        const result = /\/disableserver\/(.*)\/([a-f0-9]{12})/.exec(req.url.toLowerCase());
+        if (!result) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.write(JSON.stringify({ message: 'invalid format for backend server' }));
+          return res.end();
+        }
+
+        disableServer(`${res[2]}/${res[1]}`)
+          .then((() => {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({ message: 'ok' }));
+            return res.end();
+          }))
+          .catch((e) => {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify(e));
+            return res.end();
+          });
+        break;
+    }
+  }).listen(7778, (err) => {
+    if (err) {
+      throw err;
+    }
+    console.log('server listening on port 7778');
+  });
+
   watcher = etcd.watcher(`/${config.get('etcd.dir')}/labels/${config.get('label')}/`, null, { recursive: true });
   watcher.on('change', (event) => {
+    /*
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+
+    timer = setTimeout(
+      () => {
+      */
     reRenderTemplate()
       .catch((e) => {
         switch (e.message) {
@@ -113,6 +175,11 @@ async function watch() {
             break;
         }
       });
+    /*
+        timer = null;
+      },
+      2000);
+      */
   });
 }
 

@@ -13,7 +13,7 @@ if [ "$1" = 'npm' ] && [ "$2" = 'start' ]; then
     sleep 5
   done
 
-  /etc/init.d/haproxy start
+  /etc/init.d/haproxy start # todo with haproxyctl
 
   echo "start node template watcher..."
 fi

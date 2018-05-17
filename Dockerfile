@@ -54,13 +54,16 @@ RUN set -x \
   && apk del .build-deps \
   \
   # install rsyslogd, openrc, and tini
-  && apk add --no-cache rsyslog tini openrc \
+  && apk add --no-cache rsyslog tini openrc ruby git \
   && touch /var/log/haproxy.log \
   && ln -sf /dev/stdout /var/log/haproxy.log \
   && mkdir -p /usr/src/app \
-  && mkdir -p /run/haproxy \
+  && mkdir -p /var/run/haproxy \
+  && mkdir -p /etc/haproxy \
   && mkdir -p /var/lib/haproxy \
-  && mkdir -p /etc/rsyslog.d/
+  && mkdir -p /etc/rsyslog.d/ \
+  && git clone https://github.com/flores/haproxyctl.git \
+  && ln -s /usr/src/app/haproxyctl/bin/haproxyctl /etc/init.d/haproxyctl
 
 COPY rsyslog.conf /etc
 COPY init.sh /etc/init.d/haproxy

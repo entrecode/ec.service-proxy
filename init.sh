@@ -14,7 +14,7 @@
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 PIDFILE=/var/run/haproxy.pid
-CONFIG=/usr/src/app/haproxy.cfg
+CONFIG=/etc/haproxy/haproxy.cfg
 HAPROXY=/usr/local/sbin/haproxy
 EXTRAOPTS=
 ENABLED=1

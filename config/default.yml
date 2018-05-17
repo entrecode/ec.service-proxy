@@ -2,4 +2,4 @@ etcd:
   hosts: localhost:2379
   dir: registry
 label: virtualHost
-path: /usr/src/app/
+path: /etc/haproxy/
